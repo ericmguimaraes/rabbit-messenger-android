@@ -31,6 +31,8 @@ public class Conversation
 	/** The sender. */
 	private String sender;
 
+	private String receiver;
+
 	/**
 	 * Instantiates a new conversation.
 	 * 
@@ -149,4 +151,11 @@ public class Conversation
 		this.status = status;
 	}
 
+    public void setReceiver(String receiver) {
+        this.receiver = receiver;
+    }
+
+    public String getReceiver() {
+        return receiver;
+    }
 }
