@@ -2,7 +2,6 @@ package com.chatt.demo;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -22,11 +21,6 @@ import android.widget.TextView;
 import com.chatt.demo.custom.CustomActivity;
 import com.chatt.demo.model.Conversation;
 import com.chatt.demo.utils.Const;
-import com.parse.FindCallback;
-import com.parse.ParseException;
-import com.parse.ParseObject;
-import com.parse.ParseQuery;
-import com.parse.SaveCallback;
 
 /**
  * The Class Chat is the Activity class that holds main chat screen. It shows
@@ -134,7 +128,7 @@ public class Chat extends CustomActivity
 		imm.hideSoftInputFromWindow(txt.getWindowToken(), 0);
 
 		String s = txt.getText().toString();
-		final Conversation c = new Conversation(s, new Date(),
+	/*	final Conversation c = new Conversation(s, new Date(),
 				UserList.user.getUsername());
 		c.setStatus(Conversation.STATUS_SENDING);
 		convList.add(c);
@@ -157,7 +151,7 @@ public class Chat extends CustomActivity
 					c.setStatus(Conversation.STATUS_FAILED);
 				adp.notifyDataSetChanged();
 			}
-		});
+		}); */
 	}
 
 	/**
@@ -166,7 +160,7 @@ public class Chat extends CustomActivity
 	 */
 	private void loadConversationList()
 	{
-		ParseQuery<ParseObject> q = ParseQuery.getQuery("Chat");
+		/*ParseQuery<ParseObject> q = ParseQuery.getQuery("Chat");
 		if (convList.size() == 0)
 		{
 			// load all messages...
@@ -217,7 +211,7 @@ public class Chat extends CustomActivity
 				}, 1000);
 			}
 		});
-
+ */
 	}
 
 	/**

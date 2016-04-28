@@ -83,7 +83,7 @@ public class Conversation
 	 */
 	public boolean isSent()
 	{
-		return UserList.user.getUsername().equals(sender);
+		return false;//UserList.user.getUsername().equals(sender);
 	}
 
 	/**

@@ -18,9 +18,6 @@ import android.widget.Toast;
 import com.chatt.demo.custom.CustomActivity;
 import com.chatt.demo.utils.Const;
 import com.chatt.demo.utils.Utils;
-import com.parse.FindCallback;
-import com.parse.ParseException;
-import com.parse.ParseUser;
 
 /**
  * The Class UserList is the Activity class. It shows a list of all users of
@@ -30,10 +27,10 @@ public class UserList extends CustomActivity
 {
 
 	/** The Chat list. */
-	private ArrayList<ParseUser> uList;
+//	private ArrayList<ParseUser> uList;
 
 	/** The user. */
-	public static ParseUser user;
+//	public static ParseUser user;
 
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.FragmentActivity#onCreate(android.os.Bundle)
@@ -78,8 +75,8 @@ public class UserList extends CustomActivity
 	 */
 	private void updateUserStatus(boolean online)
 	{
-		user.put("online", online);
-		user.saveEventually();
+	//	user.put("online", online);
+	//	user.saveEventually();
 	}
 
 	/**
@@ -87,7 +84,7 @@ public class UserList extends CustomActivity
 	 */
 	private void loadUserList()
 	{
-		final ProgressDialog dia = ProgressDialog.show(this, null,
+		/*final ProgressDialog dia = ProgressDialog.show(this, null,
 				getString(R.string.alert_loading));
 		ParseUser.getQuery().whereNotEqualTo("username", user.getUsername())
 				.findInBackground(new FindCallback<ParseUser>() {
@@ -128,46 +125,34 @@ public class UserList extends CustomActivity
 							e.printStackTrace();
 						}
 					}
-				});
+				}); */
 	}
 
 	/**
 	 * The Class UserAdapter is the adapter class for User ListView. This
 	 * adapter shows the user name and it's only online status for each item.
 	 */
-	private class UserAdapter extends BaseAdapter
+/*	private class UserAdapter extends BaseAdapter
 	{
 
-		/* (non-Javadoc)
-		 * @see android.widget.Adapter#getCount()
-		 */
 		@Override
 		public int getCount()
 		{
-			return uList.size();
+			return 0;// uList.size();
 		}
 
-		/* (non-Javadoc)
-		 * @see android.widget.Adapter#getItem(int)
-		 */
 		@Override
 		public ParseUser getItem(int arg0)
 		{
 			return uList.get(arg0);
 		}
 
-		/* (non-Javadoc)
-		 * @see android.widget.Adapter#getItemId(int)
-		 */
 		@Override
 		public long getItemId(int arg0)
 		{
 			return arg0;
 		}
 
-		/* (non-Javadoc)
-		 * @see android.widget.Adapter#getView(int, android.view.View, android.view.ViewGroup)
-		 */
 		@Override
 		public View getView(int pos, View v, ViewGroup arg2)
 		{
@@ -184,5 +169,5 @@ public class UserList extends CustomActivity
 			return v;
 		}
 
-	}
+	} */
 }
