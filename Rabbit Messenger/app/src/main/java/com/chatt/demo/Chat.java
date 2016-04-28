@@ -19,7 +19,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.chatt.demo.custom.CustomActivity;
-import com.chatt.demo.model.Conversation;
+import com.chatt.demo.model.Message;
 import com.chatt.demo.utils.Const;
 
 /**
@@ -30,8 +30,8 @@ import com.chatt.demo.utils.Const;
 public class Chat extends CustomActivity
 {
 
-	/** The Conversation list. */
-	private ArrayList<Conversation> convList;
+	/** The Message list. */
+	private ArrayList<Message> convList;
 
 	/** The chat adapter. */
 	private ChatAdapter adp;
@@ -60,7 +60,7 @@ public class Chat extends CustomActivity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat);
 
-		convList = new ArrayList<Conversation>();
+		convList = new ArrayList<Message>();
 		ListView list = (ListView) findViewById(R.id.list);
 		adp = new ChatAdapter();
 		list.setAdapter(adp);
@@ -128,9 +128,9 @@ public class Chat extends CustomActivity
 		imm.hideSoftInputFromWindow(txt.getWindowToken(), 0);
 
 		String s = txt.getText().toString();
-	/*	final Conversation c = new Conversation(s, new Date(),
+	/*	final Message c = new Message(s, new Date(),
 				UserList.user.getUsername());
-		c.setStatus(Conversation.STATUS_SENDING);
+		c.setStatus(Message.STATUS_SENDING);
 		convList.add(c);
 		adp.notifyDataSetChanged();
 		txt.setText(null);
@@ -146,9 +146,9 @@ public class Chat extends CustomActivity
 			public void done(ParseException e)
 			{
 				if (e == null)
-					c.setStatus(Conversation.STATUS_SENT);
+					c.setStatus(Message.STATUS_SENT);
 				else
-					c.setStatus(Conversation.STATUS_FAILED);
+					c.setStatus(Message.STATUS_FAILED);
 				adp.notifyDataSetChanged();
 			}
 		}); */
@@ -190,7 +190,7 @@ public class Chat extends CustomActivity
 					for (int i = li.size() - 1; i >= 0; i--)
 					{
 						ParseObject po = li.get(i);
-						Conversation c = new Conversation(po
+						Message c = new Message(po
 								.getString("message"), po.getCreatedAt(), po
 								.getString("sender"));
 						convList.add(c);
@@ -234,7 +234,7 @@ public class Chat extends CustomActivity
 		 * @see android.widget.Adapter#getItem(int)
 		 */
 		@Override
-		public Conversation getItem(int arg0)
+		public Message getItem(int arg0)
 		{
 			return convList.get(arg0);
 		}
@@ -254,7 +254,7 @@ public class Chat extends CustomActivity
 		@Override
 		public View getView(int pos, View v, ViewGroup arg2)
 		{
-			Conversation c = getItem(pos);
+			Message c = getItem(pos);
 			if (c.isSent())
 				v = getLayoutInflater().inflate(R.layout.chat_item_sent, null);
 			else
@@ -266,14 +266,14 @@ public class Chat extends CustomActivity
 					DateUtils.DAY_IN_MILLIS, 0));
 
 			lbl = (TextView) v.findViewById(R.id.lbl2);
-			lbl.setText(c.getMsg());
+			lbl.setText(c.getContent());
 
 			lbl = (TextView) v.findViewById(R.id.lbl3);
 			if (c.isSent())
 			{
-				if (c.getStatus() == Conversation.STATUS_SENT)
+				if (c.getStatus() == Message.STATUS_SENT)
 					lbl.setText("Delivered");
-				else if (c.getStatus() == Conversation.STATUS_SENDING)
+				else if (c.getStatus() == Message.STATUS_SENDING)
 					lbl.setText("Sending...");
 				else
 					lbl.setText("Failed");

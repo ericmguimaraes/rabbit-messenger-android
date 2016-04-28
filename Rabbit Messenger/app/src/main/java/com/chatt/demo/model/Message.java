@@ -2,13 +2,11 @@ package com.chatt.demo.model;
 
 import java.util.Date;
 
-import com.chatt.demo.UserList;
-
 /**
- * The Class Conversation is a Java Bean class that represents a single chat
+ * The Class Message is a Java Bean class that represents a single chat
  * conversation message.
  */
-public class Conversation
+public class Message
 {
 
 	/** The Constant STATUS_SENDING. */
@@ -19,8 +17,8 @@ public class Conversation
 
 	/** The Constant STATUS_FAILED. */
 	public static final int STATUS_FAILED = 2;
-	/** The msg. */
-	private String msg;
+	/** The content. */
+	private String content;
 
 	/** The status. */
 	private int status = STATUS_SENT;
@@ -36,16 +34,16 @@ public class Conversation
 	/**
 	 * Instantiates a new conversation.
 	 * 
-	 * @param msg
-	 *            the msg
+	 * @param content
+	 *            the content
 	 * @param date
 	 *            the date
 	 * @param sender
 	 *            the sender
 	 */
-	public Conversation(String msg, Date date, String sender)
+	public Message(String content, Date date, String sender)
 	{
-		this.msg = msg;
+		this.content = content;
 		this.date = date;
 		this.sender = sender;
 	}
@@ -53,29 +51,29 @@ public class Conversation
 	/**
 	 * Instantiates a new conversation.
 	 */
-	public Conversation()
+	public Message()
 	{
 	}
 
 	/**
-	 * Gets the msg.
+	 * Gets the content.
 	 * 
-	 * @return the msg
+	 * @return the content
 	 */
-	public String getMsg()
+	public String getContent()
 	{
-		return msg;
+		return content;
 	}
 
 	/**
-	 * Sets the msg.
+	 * Sets the content.
 	 * 
-	 * @param msg
-	 *            the new msg
+	 * @param content
+	 *            the new content
 	 */
-	public void setMsg(String msg)
+	public void setContent(String content)
 	{
-		this.msg = msg;
+		this.content = content;
 	}
 
 	/**
