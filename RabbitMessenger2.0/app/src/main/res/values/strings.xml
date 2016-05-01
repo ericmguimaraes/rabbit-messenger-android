@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Rabbit Messenger</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="action_sign_in">Entrar</string>
+    <string name="action_sign_in_short">Entrar</string>
+    <string name="error_invalid_email">Email invalido</string>
+    <string name="error_incorrect_password">Senha incorreta</string>
+    <string name="error_field_required">Campo Obrigatorio</string>
+    <string name="permission_rationale">"Contacts permissions are needed for providing email
+        completions."
+    </string>
+    <string name="title_activity_user_list">Contatos</string>
+    <string name="action_settings">Configurações</string>
+    <string name="title_activity_chat">Fulano</string>
+</resources>
