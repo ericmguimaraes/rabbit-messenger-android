@@ -6,7 +6,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 
 import br.com.rabbitmessenger.rabbitmessenger.R;
-import br.com.rabbitmessenger.rabbitmessenger.dummy.DummyContent;
 import br.com.rabbitmessenger.rabbitmessenger.fragments.ChatFragment;
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
 

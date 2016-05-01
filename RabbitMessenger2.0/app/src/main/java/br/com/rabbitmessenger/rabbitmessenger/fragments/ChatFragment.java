@@ -20,8 +20,6 @@ import java.util.List;
 import br.com.rabbitmessenger.rabbitmessenger.activities.ChatActivity;
 import br.com.rabbitmessenger.rabbitmessenger.adapters.MyChatRecyclerViewAdapter;
 import br.com.rabbitmessenger.rabbitmessenger.R;
-import br.com.rabbitmessenger.rabbitmessenger.dummy.DummyContent;
-import br.com.rabbitmessenger.rabbitmessenger.dummy.DummyContent.DummyItem;
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
 import br.com.rabbitmessenger.rabbitmessenger.model.UserSingleton;
 import br.com.rabbitmessenger.rabbitmessenger.util.RabbitMQManager;

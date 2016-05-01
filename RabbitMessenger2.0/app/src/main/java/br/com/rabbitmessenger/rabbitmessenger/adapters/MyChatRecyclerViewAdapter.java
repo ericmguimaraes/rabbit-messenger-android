@@ -10,10 +10,8 @@ import android.widget.TextView;
 
 import br.com.rabbitmessenger.rabbitmessenger.R;
 import br.com.rabbitmessenger.rabbitmessenger.fragments.ChatFragment.OnListFragmentInteractionListener;
-import br.com.rabbitmessenger.rabbitmessenger.dummy.DummyContent.DummyItem;
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
 import br.com.rabbitmessenger.rabbitmessenger.model.UserSingleton;
-import br.com.rabbitmessenger.rabbitmessenger.util.RabbitMQManager;
 
 import java.util.List;
 
