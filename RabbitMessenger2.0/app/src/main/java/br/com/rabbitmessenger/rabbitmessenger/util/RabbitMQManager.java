@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Random;
 
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
+import br.com.rabbitmessenger.rabbitmessenger.model.User;
 import br.com.rabbitmessenger.rabbitmessenger.model.UserSingleton;
+import io.realm.Realm;
+import io.realm.RealmQuery;
+import io.realm.RealmResults;
 
 /**
  * Created by ericmguimaraes on 4/28/2016.
@@ -80,7 +84,7 @@ public class RabbitMQManager {
                 message.setReceiver(UserSingleton.getINSTANCE().getUsername());
                 message.setSender(users.get(userPosition));
                 message.setRead(false);
-                for (OnMessageReceivedListener l:onMessageReceivedListenerList) {
+                for (OnMessageReceivedListener l : onMessageReceivedListenerList) {
                     l.onMessageReceived(message);
                 }
             }
@@ -88,19 +92,18 @@ public class RabbitMQManager {
         }
     };
 
-    public List<String> getUsers() {
-        try {
-            // Simulate network access.
-            Thread.sleep(SIMULATION_WAIT_TIME);
-        } catch (InterruptedException e) {
-        }
-        //TODO
-        users.add("eric@rabbitmessenger.com.br");
-        users.add("railan@rabbitmessenger.com.br");
-        users.add("tonny@rabbitmessenger.com.br");
-        users.add("saulo@rabbitmessenger.com.br");
-        users.add("tarcisio@rabbitmessenger.com.br");
-        return users;
+    public List<User> getUsers() {
+        Realm realm = Realm.getDefaultInstance();
+        RealmQuery<User> query = realm.where(User.class);
+        RealmResults<User> users = query.findAll();
+        return users.subList(0, users.size());
+    }
+
+    public void saveUser(User user) {
+        Realm realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+        realm.copyToRealm(user);
+        realm.commitTransaction();
     }
 
     public boolean send(Message msg) {

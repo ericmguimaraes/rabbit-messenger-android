@@ -2,15 +2,23 @@ package br.com.rabbitmessenger.rabbitmessenger.model;
 
 import java.util.Date;
 
-public class Message {
+import io.realm.RealmObject;
+import io.realm.annotations.Required;
+
+public class Message extends RealmObject {
+    @Required
     private String content;
 
+    @Required
     private Date date;
 
+    @Required
     private String sender;
 
+    @Required
     private String receiver;
 
+    @Required
     private Boolean read;
 
     public Message(String content, Date date, String sender) {
