@@ -24,20 +24,20 @@ public class RabbitMQManager {
 
     private boolean isReceiverStarted = false;
 
-    private RabbitMQManager(){
+    private RabbitMQManager() {
         users = new ArrayList<>();
         onMessageReceivedListenerList = new ArrayList<>();
     }
 
     private final Handler simulationHandler = new Handler();
 
-    public static RabbitMQManager getINSTANCE(){
-        if(INSTANCE==null)
+    public static RabbitMQManager getINSTANCE() {
+        if (INSTANCE == null)
             INSTANCE = new RabbitMQManager();
         return INSTANCE;
     }
 
-    public void createOrAcessUser(String user){
+    public void createOrAcessUser(String user) {
         UserSingleton.getINSTANCE().setUsername(user);
 
 
@@ -53,11 +53,11 @@ public class RabbitMQManager {
         RabbitMQManager.onMessageReceivedListenerList.add(onMessageReceivedListener);
     }
 
-    public void startReceiver(){
-        if(onMessageReceivedListenerList.size()==0)
+    public void startReceiver() {
+        if (onMessageReceivedListenerList.size() == 0)
             throw new RuntimeException("Add at least one OnMessageReceivedListener before using this method.");
 
-        if(!isReceiverStarted) {
+        if (!isReceiverStarted) {
             isReceiverStarted = true;
 
 
@@ -69,25 +69,26 @@ public class RabbitMQManager {
     private Runnable senderSimulator = new Runnable() {
         @Override
         public void run() {
-                Message message = new Message();
-                int userPosition = new Random().nextInt(5);
-                if(users!=null) {
-                    while (users.get(userPosition).equals(UserSingleton.getINSTANCE().getUsername()))
-                        userPosition = new Random().nextInt(5);
-                    message.setContent(users.get(userPosition)+" mandou uma messagem para voce");
-                    message.setDate(new Date());
-                    message.setReceiver(UserSingleton.getINSTANCE().getUsername());
-                    message.setSender(users.get(userPosition));
-                    message.setRead(false);
-                    for (OnMessageReceivedListener l:onMessageReceivedListenerList) {
-                        l.onMessageReceived(message);
-                    }
+            Message message = new Message();
+            int userPosition = new Random().nextInt(5);
+            if (users != null) {
+                while (users.get(userPosition).equals(UserSingleton.getINSTANCE().getUsername())) {
+                    userPosition = new Random().nextInt(5);
                 }
-                simulationHandler.postDelayed(senderSimulator, (long) (2000+new Random().nextFloat()*1000));
+                message.setContent(users.get(userPosition) + " mandou uma messagem para voce");
+                message.setDate(new Date());
+                message.setReceiver(UserSingleton.getINSTANCE().getUsername());
+                message.setSender(users.get(userPosition));
+                message.setRead(false);
+                for (OnMessageReceivedListener l:onMessageReceivedListenerList) {
+                    l.onMessageReceived(message);
+                }
             }
+            simulationHandler.postDelayed(senderSimulator, (long) (2000 + new Random().nextFloat()*1000));
+        }
     };
 
-    public List<String> getUsers(){
+    public List<String> getUsers() {
         try {
             // Simulate network access.
             Thread.sleep(SIMULATION_WAIT_TIME);
@@ -102,7 +103,7 @@ public class RabbitMQManager {
         return users;
     }
 
-    public boolean send(Message msg){
+    public boolean send(Message msg) {
         try {
             // Simulate network access.
             Thread.sleep(SIMULATION_WAIT_TIME);
