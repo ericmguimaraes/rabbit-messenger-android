@@ -1,23 +1,28 @@
 package br.com.rabbitmessenger.rabbitmessenger.fragments;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import br.com.rabbitmessenger.rabbitmessenger.activities.ChatActivity;
+import br.com.rabbitmessenger.rabbitmessenger.activities.LoginActivity;
 import br.com.rabbitmessenger.rabbitmessenger.adapters.MyChatRecyclerViewAdapter;
 import br.com.rabbitmessenger.rabbitmessenger.R;
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
@@ -111,7 +116,13 @@ public class ChatFragment extends Fragment {
                     adapter.addMessage(msg);
             }
         });
-        RabbitMQManager.getINSTANCE().startReceiver();
+        try {
+            RabbitMQManager.getINSTANCE().startService();
+        } catch (IOException e) {
+            Log.e("RECEIVING",e.getMessage(),e);
+            Toast.makeText(getContext(),"Ops, tivemos um problema.", Toast.LENGTH_LONG).show();
+            startActivity(new Intent(getActivity(), LoginActivity.class));
+        }
     }
 
     @Override
@@ -161,7 +172,10 @@ public class ChatFragment extends Fragment {
 
         @Override
         protected void onPostExecute(final Boolean success) {
-
+            if(!success){
+                Toast.makeText(getContext(),"Ops, tivemos um problema.", Toast.LENGTH_LONG).show();
+                //TODO react to fail
+            }
         }
 
     }

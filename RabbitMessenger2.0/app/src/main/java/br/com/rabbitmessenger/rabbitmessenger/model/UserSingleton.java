@@ -45,16 +45,16 @@ public class UserSingleton {
         messages.add(message);
     }
 
-    public List<String> getSenders(){
-        List<String> senders = new ArrayList<>();
+    public List<User> getSenders(){
+        List<User> senders = new ArrayList<>();
         outerloop:
         for (Message m:messages) {
             if(!m.isRead()){
-                for (String sender: senders) {
-                    if(sender.equals(m.getSender()))
+                for (User sender: senders) {
+                    if(sender.getName().equals(m.getSender()))
                         continue outerloop;
                 }
-                senders.add(m.getSender());
+                senders.add(new User(m.getSender()));
             }
         }
         return senders;

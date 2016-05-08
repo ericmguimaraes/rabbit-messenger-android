@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import br.com.rabbitmessenger.rabbitmessenger.R;
 import br.com.rabbitmessenger.rabbitmessenger.fragments.ContactsFragment.OnListFragmentInteractionListener;
+import br.com.rabbitmessenger.rabbitmessenger.model.User;
 import br.com.rabbitmessenger.rabbitmessenger.model.UserSingleton;
 
 import java.util.ArrayList;
@@ -22,12 +23,12 @@ import java.util.List;
  */
 public class MyContactsRecyclerViewAdapter extends RecyclerView.Adapter<MyContactsRecyclerViewAdapter.ViewHolder> {
 
-    private List<String> contacts;
+    private List<User> contacts;
     private final OnListFragmentInteractionListener mListener;
-    private List<String> senders;
+    private List<User> senders;
     LinearLayoutManager linearLayoutManager;
 
-    public MyContactsRecyclerViewAdapter(List<String> items, OnListFragmentInteractionListener listener, LinearLayoutManager linearLayoutManager) {
+    public MyContactsRecyclerViewAdapter(List<User> items, OnListFragmentInteractionListener listener, LinearLayoutManager linearLayoutManager) {
         contacts = items;
         mListener = listener;
         senders = new ArrayList<>();
@@ -44,7 +45,7 @@ public class MyContactsRecyclerViewAdapter extends RecyclerView.Adapter<MyContac
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
         holder.mItem = contacts.get(position);
-        holder.mContactView.setText(holder.mItem);
+        holder.mContactView.setText(holder.mItem.getName());
         if(isItemAmongSenders(holder.mItem))
             holder.messageIcon.setVisibility(View.VISIBLE);
         holder.mView.setOnClickListener(new View.OnClickListener() {
@@ -60,10 +61,10 @@ public class MyContactsRecyclerViewAdapter extends RecyclerView.Adapter<MyContac
         });
     }
 
-    private boolean isItemAmongSenders(String mItem) {
+    private boolean isItemAmongSenders(User mItem) {
         senders = UserSingleton.getINSTANCE().getSenders();
         boolean isAmong = false;
-        for (String s :senders) {
+        for (User s :senders) {
             if (s.equals(mItem))
                 isAmong = true;
             break;
@@ -87,7 +88,7 @@ public class MyContactsRecyclerViewAdapter extends RecyclerView.Adapter<MyContac
         return contacts.size();
     }
 
-    public void setContacts(List<String> contacts) {
+    public void setContacts(List<User> contacts) {
         this.contacts = contacts;
         notifyDataSetChanged();
     }
@@ -108,7 +109,7 @@ public class MyContactsRecyclerViewAdapter extends RecyclerView.Adapter<MyContac
         public final View mView;
         public final TextView mContactView;
         public final ImageView messageIcon;
-        public String mItem;
+        public User mItem;
 
         public ViewHolder(View view) {
             super(view);

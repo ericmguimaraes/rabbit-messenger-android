@@ -7,6 +7,7 @@ import io.realm.annotations.Required;
  * Created by saulo on 5/5/16.
  */
 public class User extends RealmObject {
+
     @Required
     private String name;
 
@@ -24,4 +25,17 @@ public class User extends RealmObject {
     public void setName(String name) {
         this.name = name;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o instanceof User)
+            return name.equals(((User)o).getName());
+        return false;
+    }
+
 }

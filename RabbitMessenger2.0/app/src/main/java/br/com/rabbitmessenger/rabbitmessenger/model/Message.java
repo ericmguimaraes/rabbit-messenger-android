@@ -69,4 +69,9 @@ public class Message extends RealmObject {
     public void setRead(Boolean read) {
         this.read = read;
     }
+
+    @Override
+    public String toString() {
+        return content+":"+sender+":"+receiver;
+    }
 }

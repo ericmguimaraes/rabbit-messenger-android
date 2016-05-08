@@ -11,27 +11,26 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import br.com.rabbitmessenger.rabbitmessenger.R;
+import br.com.rabbitmessenger.rabbitmessenger.model.User;
 import br.com.rabbitmessenger.rabbitmessenger.util.RabbitMQManager;
 
 /**
  * A login screen that offers login via email/password.
  */
 public class LoginActivity extends AppCompatActivity {
-
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
 
     // UI references.
     private AutoCompleteTextView mEmailView;
@@ -42,6 +41,15 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        mLoginFormView = findViewById(R.id.login_form);
+        mProgressView = findViewById(R.id.login_progress);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        RabbitMQManager.getINSTANCE().setContext(getApplicationContext());
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         addEmailsToAutoComplete();
@@ -53,11 +61,7 @@ public class LoginActivity extends AppCompatActivity {
                 attemptLogin();
             }
         });
-
-        mLoginFormView = findViewById(R.id.login_form);
-        mProgressView = findViewById(R.id.login_progress);
     }
-
 
     /**
      * Attempts to sign in or register the account specified by the login form.
@@ -65,9 +69,6 @@ public class LoginActivity extends AppCompatActivity {
      * errors are presented and no actual login attempt is made.
      */
     private void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
 
         // Reset errors.
         mEmailView.setError(null);
@@ -96,15 +97,17 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            showProgress(true);
-            mAuthTask = new UserLoginTask(email);
-            mAuthTask.execute((Void) null);
+            //showProgress(true);
+
+            RabbitMQManager.getINSTANCE().createOrAcessUser(email);
+            mEmailView.setText("");
+            startActivity(new Intent(LoginActivity.this, ContactsActivity.class));
         }
     }
 
     private boolean isEmailValid(String email) {
         //TODO: Replace this with your own logic
-        return email.contains("@");
+        return true;
     }
 
     /**
@@ -151,6 +154,10 @@ public class LoginActivity extends AppCompatActivity {
         emailAddressCollection.add("saulo@rabbitmessenger.com.br");
         emailAddressCollection.add("tarcisio@rabbitmessenger.com.br");
 
+        for (String s: emailAddressCollection)
+            if(!RabbitMQManager.getINSTANCE().isUserCreated(s))
+                RabbitMQManager.getINSTANCE().saveUser(new User(s));
+
         //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
         ArrayAdapter<String> adapter =
                 new ArrayAdapter<>(LoginActivity.this,
@@ -159,52 +166,5 @@ public class LoginActivity extends AppCompatActivity {
         mEmailView.setAdapter(adapter);
     }
 
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-
-        UserLoginTask(String email) {
-            mEmail = email;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            // TODO: register the new account here.
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                RabbitMQManager.getINSTANCE().createOrAcessUser(mEmail);
-                finish();
-                startActivity(new Intent(LoginActivity.this, ContactsActivity.class));
-            } else {
-                mEmailView.setError(getString(R.string.error_incorrect_password));
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
 }
 

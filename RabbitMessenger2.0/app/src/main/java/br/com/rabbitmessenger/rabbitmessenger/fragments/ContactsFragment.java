@@ -4,23 +4,29 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.AsyncTask;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import br.com.rabbitmessenger.rabbitmessenger.activities.LoginActivity;
 import br.com.rabbitmessenger.rabbitmessenger.adapters.MyContactsRecyclerViewAdapter;
 import br.com.rabbitmessenger.rabbitmessenger.R;
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
+import br.com.rabbitmessenger.rabbitmessenger.model.User;
 import br.com.rabbitmessenger.rabbitmessenger.model.UserSingleton;
 import br.com.rabbitmessenger.rabbitmessenger.util.RabbitMQManager;
 
@@ -35,22 +41,29 @@ public class ContactsFragment extends Fragment {
 
     private OnListFragmentInteractionListener mListener;
 
-    private List<String> contacts;
-
-    private GetContactListTask task = null;
+    private List<User> contacts;
 
     private MyContactsRecyclerViewAdapter adapter;
 
     RecyclerView recyclerView;
 
     ProgressBar progressBar;
+
     private LinearLayoutManager linearLayoutManager;
+
+    private volatile List<Message> messages;
+
+    private Handler messagesHandler;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
      */
     public ContactsFragment() {
+        messages = new ArrayList<>();
+        messagesHandler = new Handler();
+
+        messagesHandler.postDelayed(messagesChecker,500);
     }
 
     // TODO: Customize parameter initialization
@@ -60,15 +73,6 @@ public class ContactsFragment extends Fragment {
         Bundle args = new Bundle();
         fragment.setArguments(args);
         return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        contacts = new ArrayList<>();
-        task = new GetContactListTask();
-        task.execute();
     }
 
     @Override
@@ -86,9 +90,43 @@ public class ContactsFragment extends Fragment {
         adapter = new MyContactsRecyclerViewAdapter(contacts, mListener,linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
+        updateList();
+
+        RabbitMQManager.getINSTANCE().addOnMessageReceivedListener(new RabbitMQManager.OnMessageReceivedListener() {
+            @Override
+            public void onMessageReceived(Message msg) {
+                synchronized (messages) {
+                    messages.add(msg);
+                }
+            }
+        });
+
+        try {
+            RabbitMQManager.getINSTANCE().startService();
+        } catch (IOException e) {
+            Log.e("RECEIVING",e.getMessage(),e);
+            Toast.makeText(getContext(),"Ops, tivemos um problema.", Toast.LENGTH_LONG).show();
+            startActivity(new Intent(getActivity(), LoginActivity.class));
+        }
+
+        showProgress(false);
+
         return view;
     }
 
+    Runnable messagesChecker = new Runnable() {
+        @Override
+        public void run() {
+            synchronized (messages) {
+                for (Message msg : messages) {
+                    UserSingleton.getINSTANCE().addMessage(msg);
+                    adapter.notifyNewMessage(msg.getSender());
+                }
+                messages.clear();
+            }
+            messagesHandler.postDelayed(messagesChecker,500);
+        }
+    };
 
     @Override
     public void onAttach(Context context) {
@@ -107,6 +145,12 @@ public class ContactsFragment extends Fragment {
         mListener = null;
     }
 
+    public void updateList() {
+        contacts = new ArrayList<>();
+        contacts = RabbitMQManager.getINSTANCE().getUsers();
+        adapter.setContacts(contacts);
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -118,7 +162,7 @@ public class ContactsFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnListFragmentInteractionListener {
-        void onListFragmentInteraction(String contact);
+        void onListFragmentInteraction(User contact);
     }
 
     /**
@@ -154,47 +198,6 @@ public class ContactsFragment extends Fragment {
             // and hide the relevant UI components.
             progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
             recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
-    }
-
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class GetContactListTask extends AsyncTask<Void, Void, Boolean> {
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            contacts = RabbitMQManager.getINSTANCE().getUsers();
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            task = null;
-            showProgress(false);
-
-            if (success) {
-                adapter.setContacts(contacts);
-            } else {
-                //TODO
-            }
-
-            RabbitMQManager.getINSTANCE().addOnMessageReceivedListener(new RabbitMQManager.OnMessageReceivedListener() {
-                @Override
-                public void onMessageReceived(Message msg) {
-                    UserSingleton.getINSTANCE().addMessage(msg);
-                    adapter.notifyNewMessage(msg.getSender());
-                }
-            });
-            RabbitMQManager.getINSTANCE().startReceiver();
-
-        }
-
-        @Override
-        protected void onCancelled() {
-            task = null;
-            showProgress(false);
         }
     }
 

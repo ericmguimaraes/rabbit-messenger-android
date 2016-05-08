@@ -1,16 +1,34 @@
 package br.com.rabbitmessenger.rabbitmessenger.util;
 
-import android.os.Handler;
+import android.content.Context;
+import android.os.Bundle;
+import android.util.Log;
 
+import com.google.gson.Gson;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.QueueingConsumer;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeoutException;
 
 import br.com.rabbitmessenger.rabbitmessenger.model.Message;
 import br.com.rabbitmessenger.rabbitmessenger.model.User;
 import br.com.rabbitmessenger.rabbitmessenger.model.UserSingleton;
 import io.realm.Realm;
+import io.realm.RealmConfiguration;
 import io.realm.RealmQuery;
 import io.realm.RealmResults;
 
@@ -19,21 +37,49 @@ import io.realm.RealmResults;
  */
 public class RabbitMQManager {
 
-    private static final long SIMULATION_WAIT_TIME = 1000;
+    private static final String SERVER_URL = "alexpud.koding.io";
     private static RabbitMQManager INSTANCE;
 
     private static List<OnMessageReceivedListener> onMessageReceivedListenerList;
 
-    ArrayList<String> users;
+    ArrayList<User> users;
 
     private boolean isReceiverStarted = false;
+
+    RealmConfiguration realmConfig;
+
+    Realm realm;
+
+    Context context;
+
+    private BlockingDeque queue;
+
+    Thread subscribeThread;
+    Thread publishThread;
+
+    public void send(Message message) {
+        try {
+            Log.d("","[q] " + message);
+            queue.putLast(message);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    ConnectionFactory factory;
+
+    private void setupConnectionFactory() {
+        factory.setAutomaticRecoveryEnabled(false);
+        factory.setHost(SERVER_URL);
+    }
 
     private RabbitMQManager() {
         users = new ArrayList<>();
         onMessageReceivedListenerList = new ArrayList<>();
+        queue = new LinkedBlockingDeque();
+        factory = new ConnectionFactory();
+        setupConnectionFactory();
     }
-
-    private final Handler simulationHandler = new Handler();
 
     public static RabbitMQManager getINSTANCE() {
         if (INSTANCE == null)
@@ -41,83 +87,161 @@ public class RabbitMQManager {
         return INSTANCE;
     }
 
-    public void createOrAcessUser(String user) {
+    public void createOrAcessUser(String user){
         UserSingleton.getINSTANCE().setUsername(user);
-
-
-        //TODO
-        try {
-            // Simulate network access.
-            Thread.sleep(SIMULATION_WAIT_TIME);
-        } catch (InterruptedException e) {
-        }
+        if(!isUserCreated(user))
+            saveUser(new User(user));
     }
 
     public void addOnMessageReceivedListener(OnMessageReceivedListener onMessageReceivedListener) {
         RabbitMQManager.onMessageReceivedListenerList.add(onMessageReceivedListener);
     }
 
-    public void startReceiver() {
+    public void startService() throws IOException {
         if (onMessageReceivedListenerList.size() == 0)
             throw new RuntimeException("Add at least one OnMessageReceivedListener before using this method.");
 
         if (!isReceiverStarted) {
             isReceiverStarted = true;
 
-
-            //TODO
-            senderSimulator.run();
+            subscribe();
+            publishToAMQP();
         }
     }
 
-    private Runnable senderSimulator = new Runnable() {
-        @Override
-        public void run() {
-            Message message = new Message();
-            int userPosition = new Random().nextInt(5);
-            if (users != null) {
-                while (users.get(userPosition).equals(UserSingleton.getINSTANCE().getUsername())) {
-                    userPosition = new Random().nextInt(5);
-                }
-                message.setContent(users.get(userPosition) + " mandou uma messagem para voce");
-                message.setDate(new Date());
-                message.setReceiver(UserSingleton.getINSTANCE().getUsername());
-                message.setSender(users.get(userPosition));
-                message.setRead(false);
-                for (OnMessageReceivedListener l : onMessageReceivedListenerList) {
-                    l.onMessageReceived(message);
+
+    public void publishToAMQP()
+    {
+        publishThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        Log.i("publishThread","publishThread");
+                        Connection connection = factory.newConnection();
+                        Channel ch = connection.createChannel();
+                        ch.confirmSelect();
+
+                        while (true) {
+                            Message message = (Message) queue.takeFirst();
+                            try{
+                                ch.queueDeclare(message.getReceiver(), false, false, false, null);
+                                Gson gson = new Gson();
+                                ch.basicPublish("amq.direct", message.getReceiver(), null, gson.toJson(message).getBytes());
+                                Log.d("", "[s] " + message);
+                                ch.waitForConfirmsOrDie();
+                            } catch (Exception e){
+                                Log.d("","[f] " + message);
+                                queue.putFirst(message);
+                                throw e;
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        break;
+                    } catch (Exception e) {
+                        Log.d("", "Connection broken: " + e.getClass().getName());
+                        try {
+                            Thread.sleep(200); //sleep and then try again
+                        } catch (InterruptedException e1) {
+                            break;
+                        }
+                    }
                 }
             }
-            simulationHandler.postDelayed(senderSimulator, (long) (2000 + new Random().nextFloat()*1000));
+        });
+        publishThread.setName("publishThread");
+        publishThread.setPriority(Thread.MAX_PRIORITY);
+        publishThread.start();
+    }
+
+    void subscribe()
+    {
+        subscribeThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+            while(true) {
+                try {
+                    Log.i("subscribeThread","subscribeThread");
+                    Connection connection = factory.newConnection();
+                    Channel channel = connection.createChannel();
+                    channel.basicQos(1);
+                    AMQP.Queue.DeclareOk q = channel.queueDeclare(UserSingleton.getINSTANCE().getUsername(), false, false, false, null);
+                    channel.queueBind(q.getQueue(), "amq.direct", UserSingleton.getINSTANCE().getUsername());
+                    QueueingConsumer consumer = new QueueingConsumer(channel);
+                    channel.basicConsume(UserSingleton.getINSTANCE().getUsername(), true, consumer);
+                    while (true) {
+                        QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+                        Gson gson = new Gson();
+                        Message message = gson.fromJson(new String(delivery.getBody()), Message.class);
+                        for (OnMessageReceivedListener l : onMessageReceivedListenerList) {
+                            l.onMessageReceived(message);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    break;
+                } catch (Exception e1) {
+                    Log.e("", "Connection broken: " + e1.getClass().getName());
+                    try {
+                        Thread.sleep(200); //sleep and then try again
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
+            }
         }
-    };
+        });
+        subscribeThread.setName("subscribeThread");
+        subscribeThread.setPriority(Thread.MAX_PRIORITY);
+        subscribeThread.start();
+    }
 
     public List<User> getUsers() {
-        Realm realm = Realm.getDefaultInstance();
+        if(context==null)
+            throw new RuntimeException("chame setContext antes.");
+        realm = Realm.getInstance(realmConfig);
         RealmQuery<User> query = realm.where(User.class);
         RealmResults<User> users = query.findAll();
         return users.subList(0, users.size());
     }
 
     public void saveUser(User user) {
-        Realm realm = Realm.getDefaultInstance();
+        if(context==null)
+            throw new RuntimeException("chame setContext antes.");
+        realm = Realm.getInstance(realmConfig);
         realm.beginTransaction();
         realm.copyToRealm(user);
         realm.commitTransaction();
     }
 
-    public boolean send(Message msg) {
-        try {
-            // Simulate network access.
-            Thread.sleep(SIMULATION_WAIT_TIME);
-        } catch (InterruptedException e) {
-        }
-        //TODO
-        return true;
-    }
-
     public interface OnMessageReceivedListener {
         void onMessageReceived(Message msg);
+    }
+
+    public void setContext(Context context) {
+        destroy();
+        reset();
+        INSTANCE.context = context;
+        INSTANCE.realmConfig = new RealmConfiguration.Builder(context).build();
+    }
+
+    public boolean isUserCreated(String user){
+        realm = Realm.getInstance(realmConfig);
+        RealmResults<User> r = realm.where(User.class)
+                .equalTo("name", user)
+                .findAll();
+        return r.size()>0;
+    }
+
+    public void reset(){
+        INSTANCE = new RabbitMQManager();
+    }
+
+    public void destroy(){
+        if(publishThread!=null)
+            publishThread.interrupt();
+        if(subscribeThread!=null)
+            subscribeThread.interrupt();
     }
 
 }
