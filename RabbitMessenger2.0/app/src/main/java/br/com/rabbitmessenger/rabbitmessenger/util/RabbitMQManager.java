@@ -1,6 +1,7 @@
 package br.com.rabbitmessenger.rabbitmessenger.util;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -37,8 +38,9 @@ import io.realm.RealmResults;
  */
 public class RabbitMQManager {
 
-    private static final String SERVER_URL = "alexpud.koding.io";
+    private static final String SERVER_URL = "ajalvesneto.koding.io";
     private static RabbitMQManager INSTANCE;
+    private String EXCHANGE_NAME = "amq.direct";
 
     private static List<OnMessageReceivedListener> onMessageReceivedListenerList;
 
@@ -125,11 +127,12 @@ public class RabbitMQManager {
                         while (true) {
                             Message message = (Message) queue.takeFirst();
                             try{
-                                ch.queueDeclare(message.getReceiver(), false, false, false, null);
+                                ch.queueDeclare(message.getReceiver(), true, false, false, null);
                                 Gson gson = new Gson();
-                                ch.basicPublish("amq.direct", message.getReceiver(), null, gson.toJson(message).getBytes());
+                                ch.basicPublish("", message.getReceiver(), null, gson.toJson(message).getBytes());
                                 Log.d("", "[s] " + message);
-                                ch.waitForConfirmsOrDie();
+                                //ch.waitForConfirmsOrDie();
+                                ch.close();
                             } catch (Exception e){
                                 Log.d("","[f] " + message);
                                 queue.putFirst(message);
@@ -137,10 +140,13 @@ public class RabbitMQManager {
                             }
                         }
                     } catch (InterruptedException e) {
+                        Log.d("", "Entrou 1");
                         break;
                     } catch (Exception e) {
+                        Log.d("", "Entrou 2");
                         Log.d("", "Connection broken: " + e.getClass().getName());
                         try {
+                            Log.d("", "Entrou 3");
                             Thread.sleep(200); //sleep and then try again
                         } catch (InterruptedException e1) {
                             break;
@@ -154,6 +160,47 @@ public class RabbitMQManager {
         publishThread.start();
     }
 
+
+    private class send2 extends AsyncTask<String, Void, Void> {
+
+        @Override
+        protected Void doInBackground(String... Message) {
+            try {
+
+                Connection connection = factory.newConnection();
+                Channel channel = connection.createChannel();
+                channel.confirmSelect();
+
+                Message message;
+                while (true) {
+                    message = (Message) queue.takeFirst();
+
+                    channel.queueDeclare(message.getReceiver(), false, false, false, null);
+                    String tempstr = "";
+                    for (int i = 0; i < Message.length; i++)
+                        tempstr += Message[i];
+
+                    channel.basicPublish(EXCHANGE_NAME, message.getReceiver(), null,
+                            tempstr.getBytes());
+
+                    channel.close();
+
+                    connection.close();
+                }
+
+            } catch (Exception e) {
+                // TODO: handle exception
+                Log.d("", "Entrou 4");
+                e.printStackTrace();
+            }
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+    }
+
+
+
     void subscribe()
     {
         subscribeThread = new Thread(new Runnable() {
@@ -166,7 +213,7 @@ public class RabbitMQManager {
                     Connection connection = factory.newConnection();
                     Channel channel = connection.createChannel();
                     channel.basicQos(1);
-                    AMQP.Queue.DeclareOk q = channel.queueDeclare(UserSingleton.getINSTANCE().getUsername(), false, false, false, null);
+                    AMQP.Queue.DeclareOk q = channel.queueDeclare(UserSingleton.getINSTANCE().getUsername(), true, false, false, null);
                     channel.queueBind(q.getQueue(), "amq.direct", UserSingleton.getINSTANCE().getUsername());
                     QueueingConsumer consumer = new QueueingConsumer(channel);
                     channel.basicConsume(UserSingleton.getINSTANCE().getUsername(), true, consumer);
