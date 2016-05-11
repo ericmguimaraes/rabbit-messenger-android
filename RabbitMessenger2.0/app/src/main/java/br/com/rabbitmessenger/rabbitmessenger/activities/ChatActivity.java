@@ -35,6 +35,7 @@ public class ChatActivity extends AppCompatActivity implements ChatFragment.OnLi
 
     }
 
+
     @Override
     public void onListFragmentInteraction(Message message) {
 

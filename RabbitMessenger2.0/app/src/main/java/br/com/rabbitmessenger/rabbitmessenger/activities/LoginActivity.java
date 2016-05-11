@@ -102,6 +102,7 @@ public class LoginActivity extends AppCompatActivity {
             RabbitMQManager.getINSTANCE().createOrAcessUser(email);
             mEmailView.setText("");
             startActivity(new Intent(LoginActivity.this, ContactsActivity.class));
+            //recreate();
         }
     }
 

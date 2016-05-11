@@ -1,6 +1,7 @@
 package br.com.rabbitmessenger.rabbitmessenger.util;
 
 import android.content.Context;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -41,10 +42,10 @@ public class RabbitMQManager {
     private static final String SERVER_URL = "ajalvesneto.koding.io";
     private static RabbitMQManager INSTANCE;
     private String EXCHANGE_NAME = "amq.direct";
-
     private static List<OnMessageReceivedListener> onMessageReceivedListenerList;
 
     ArrayList<User> users;
+    boolean condition = true;
 
     private boolean isReceiverStarted = false;
 
@@ -111,37 +112,39 @@ public class RabbitMQManager {
         }
     }
 
+    int i = 1;
 
     public void publishToAMQP()
     {
         publishThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true) {
                     try {
-                        Log.i("publishThread","publishThread");
-                        Connection connection = factory.newConnection();
-                        Channel ch = connection.createChannel();
-                        ch.confirmSelect();
+                        while(!publishThread.isInterrupted()) {
+                            i++;
+                            Log.i("publishThread", "publishThread");
+                            Connection connection = factory.newConnection();
+                            Channel ch = connection.createChannel();
+                            ch.confirmSelect();
 
-                        while (true) {
-                            Message message = (Message) queue.takeFirst();
-                            try{
-                                ch.queueDeclare(message.getReceiver(), true, false, false, null);
-                                Gson gson = new Gson();
-                                ch.basicPublish("", message.getReceiver(), null, gson.toJson(message).getBytes());
-                                Log.d("", "[s] " + message);
-                                //ch.waitForConfirmsOrDie();
-                                ch.close();
-                            } catch (Exception e){
-                                Log.d("","[f] " + message);
-                                queue.putFirst(message);
-                                throw e;
+                            while (!publishThread.isInterrupted()) {
+                                Message message = (Message) queue.takeFirst();
+                                try {
+                                    ch.queueDeclare(message.getReceiver(), true, false, false, null);
+                                    Gson gson = new Gson();
+                                    ch.basicPublish("", message.getReceiver(), null, gson.toJson(message).getBytes());
+                                    Log.d("", "[s] " + message);
+                                    ch.waitForConfirmsOrDie();
+                                } catch (Exception e) {
+                                    Log.d("", "[f] " + message);
+                                    queue.putFirst(message);
+                                    throw e;
+                                }
                             }
                         }
                     } catch (InterruptedException e) {
-                        Log.d("", "Entrou 1");
-                        break;
+                        publishThread.interrupt();
+                        //break;
                     } catch (Exception e) {
                         Log.d("", "Entrou 2");
                         Log.d("", "Connection broken: " + e.getClass().getName());
@@ -149,10 +152,10 @@ public class RabbitMQManager {
                             Log.d("", "Entrou 3");
                             Thread.sleep(200); //sleep and then try again
                         } catch (InterruptedException e1) {
-                            break;
+                            publishThread.interrupt();
+                            //break;
                         }
                     }
-                }
             }
         });
         publishThread.setName("publishThread");
@@ -172,7 +175,7 @@ public class RabbitMQManager {
                 channel.confirmSelect();
 
                 Message message;
-                while (true) {
+                while (condition) {
                     message = (Message) queue.takeFirst();
 
                     channel.queueDeclare(message.getReceiver(), false, false, false, null);
@@ -206,36 +209,38 @@ public class RabbitMQManager {
         subscribeThread = new Thread(new Runnable() {
             @Override
             public void run() {
-
-            while(true) {
                 try {
-                    Log.i("subscribeThread","subscribeThread");
-                    Connection connection = factory.newConnection();
-                    Channel channel = connection.createChannel();
-                    channel.basicQos(1);
-                    AMQP.Queue.DeclareOk q = channel.queueDeclare(UserSingleton.getINSTANCE().getUsername(), true, false, false, null);
-                    channel.queueBind(q.getQueue(), "amq.direct", UserSingleton.getINSTANCE().getUsername());
-                    QueueingConsumer consumer = new QueueingConsumer(channel);
-                    channel.basicConsume(UserSingleton.getINSTANCE().getUsername(), true, consumer);
-                    while (true) {
-                        QueueingConsumer.Delivery delivery = consumer.nextDelivery();
-                        Gson gson = new Gson();
-                        Message message = gson.fromJson(new String(delivery.getBody()), Message.class);
-                        for (OnMessageReceivedListener l : onMessageReceivedListenerList) {
-                            l.onMessageReceived(message);
+                    while(!subscribeThread.isInterrupted()) {
+                        i++;
+                        Log.i("subscribeThread", "subscribeThread");
+                        Connection connection = factory.newConnection();
+                        Channel channel = connection.createChannel();
+                        channel.basicQos(1);
+                        AMQP.Queue.DeclareOk q = channel.queueDeclare(UserSingleton.getINSTANCE().getUsername(), true, false, false, null);
+                        channel.queueBind(q.getQueue(), "amq.direct", UserSingleton.getINSTANCE().getUsername());
+                        QueueingConsumer consumer = new QueueingConsumer(channel);
+                        channel.basicConsume(UserSingleton.getINSTANCE().getUsername(), true, consumer);
+                        while (!subscribeThread.isInterrupted()) {
+                            QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+                            Gson gson = new Gson();
+                            Message message = gson.fromJson(new String(delivery.getBody()), Message.class);
+                            for (OnMessageReceivedListener l : onMessageReceivedListenerList) {
+                                l.onMessageReceived(message);
+                            }
                         }
                     }
                 } catch (InterruptedException e) {
-                    break;
+                    subscribeThread.interrupt();
+                    //break;
                 } catch (Exception e1) {
                     Log.e("", "Connection broken: " + e1.getClass().getName());
                     try {
                         Thread.sleep(200); //sleep and then try again
                     } catch (InterruptedException e) {
-                        break;
+                        subscribeThread.interrupt();
+                        //break;
                     }
                 }
-            }
         }
         });
         subscribeThread.setName("subscribeThread");
@@ -285,10 +290,15 @@ public class RabbitMQManager {
     }
 
     public void destroy(){
-        if(publishThread!=null)
+        if(publishThread!=null){
             publishThread.interrupt();
-        if(subscribeThread!=null)
+            publishThread = null;
+        }
+        if(subscribeThread!=null){
             subscribeThread.interrupt();
+            subscribeThread = null;
+        }
+
     }
 
 }
