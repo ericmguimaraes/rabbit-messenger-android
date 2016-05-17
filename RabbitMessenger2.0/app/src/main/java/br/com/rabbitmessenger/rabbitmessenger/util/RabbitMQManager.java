@@ -119,32 +119,33 @@ public class RabbitMQManager {
         publishThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                while(!publishThread.isInterrupted()) {
                     try {
-                        while(!publishThread.isInterrupted()) {
-                            i++;
-                            Log.i("publishThread", "publishThread");
-                            Connection connection = factory.newConnection();
-                            Channel ch = connection.createChannel();
-                            ch.confirmSelect();
 
-                            while (!publishThread.isInterrupted()) {
-                                Message message = (Message) queue.takeFirst();
-                                try {
-                                    ch.queueDeclare(message.getReceiver(), true, false, false, null);
-                                    Gson gson = new Gson();
-                                    ch.basicPublish("", message.getReceiver(), null, gson.toJson(message).getBytes());
-                                    Log.d("", "[s] " + message);
-                                    ch.waitForConfirmsOrDie();
-                                } catch (Exception e) {
-                                    Log.d("", "[f] " + message);
-                                    queue.putFirst(message);
-                                    throw e;
-                                }
+                        i++;
+                        Log.i("publishThread", "publishThread");
+                        Connection connection = factory.newConnection();
+                        Channel ch = connection.createChannel();
+                        ch.confirmSelect();
+
+                        while (!publishThread.isInterrupted()) {
+                            Message message = (Message) queue.takeFirst();
+                            try {
+                                ch.queueDeclare(message.getReceiver(), true, false, false, null);
+                                Gson gson = new Gson();
+                                ch.basicPublish("", message.getReceiver(), null, gson.toJson(message).getBytes());
+                                Log.d("", "[s] " + message);
+                                ch.waitForConfirmsOrDie();
+                            } catch (Exception e) {
+                                Log.d("", "[f] " + message);
+                                queue.putFirst(message);
+                                throw e;
                             }
                         }
+
                     } catch (InterruptedException e) {
                         publishThread.interrupt();
-                        //break;
+                        break;
                     } catch (Exception e) {
                         Log.d("", "Entrou 2");
                         Log.d("", "Connection broken: " + e.getClass().getName());
@@ -153,54 +154,16 @@ public class RabbitMQManager {
                             Thread.sleep(200); //sleep and then try again
                         } catch (InterruptedException e1) {
                             publishThread.interrupt();
-                            //break;
+                            break;
                         }
                     }
-            }
+                }}
         });
         publishThread.setName("publishThread");
         publishThread.setPriority(Thread.MAX_PRIORITY);
         publishThread.start();
     }
 
-
-    private class send2 extends AsyncTask<String, Void, Void> {
-
-        @Override
-        protected Void doInBackground(String... Message) {
-            try {
-
-                Connection connection = factory.newConnection();
-                Channel channel = connection.createChannel();
-                channel.confirmSelect();
-
-                Message message;
-                while (condition) {
-                    message = (Message) queue.takeFirst();
-
-                    channel.queueDeclare(message.getReceiver(), false, false, false, null);
-                    String tempstr = "";
-                    for (int i = 0; i < Message.length; i++)
-                        tempstr += Message[i];
-
-                    channel.basicPublish(EXCHANGE_NAME, message.getReceiver(), null,
-                            tempstr.getBytes());
-
-                    channel.close();
-
-                    connection.close();
-                }
-
-            } catch (Exception e) {
-                // TODO: handle exception
-                Log.d("", "Entrou 4");
-                e.printStackTrace();
-            }
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-    }
 
 
 
@@ -209,8 +172,8 @@ public class RabbitMQManager {
         subscribeThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    while(!subscribeThread.isInterrupted()) {
+                while(!subscribeThread.isInterrupted()) {
+                    try {
                         i++;
                         Log.i("subscribeThread", "subscribeThread");
                         Connection connection = factory.newConnection();
@@ -228,20 +191,20 @@ public class RabbitMQManager {
                                 l.onMessageReceived(message);
                             }
                         }
-                    }
-                } catch (InterruptedException e) {
-                    subscribeThread.interrupt();
-                    //break;
-                } catch (Exception e1) {
-                    Log.e("", "Connection broken: " + e1.getClass().getName());
-                    try {
-                        Thread.sleep(200); //sleep and then try again
                     } catch (InterruptedException e) {
                         subscribeThread.interrupt();
-                        //break;
+                        break;
+                    } catch (Exception e1) {
+                        Log.e("", "Connection broken: " + e1.getClass().getName());
+                        try {
+                            Thread.sleep(200); //sleep and then try again
+                        } catch (InterruptedException e) {
+                            subscribeThread.interrupt();
+                            break;
+                        }
                     }
                 }
-        }
+            }
         });
         subscribeThread.setName("subscribeThread");
         subscribeThread.setPriority(Thread.MAX_PRIORITY);
